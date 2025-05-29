@@ -1,0 +1,318 @@
+# =============================================================================
+# TrendPulse - Comprehensive .gitignore
+# =============================================================================
+
+# =============================================================================
+# PYTHON / BACKEND
+# =============================================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# Environment files
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/env_example.txt
+!backend/.env.example
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+news_trends.db
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+
+# Log files
+*.log
+logs/
+backend/*.log
+backend/logs/
+
+# ML Model cache and temporary files
+models_cache/
+backend/models_cache/
+*.pkl
+*.joblib
+*.h5
+*.hdf5
+checkpoints/
+saved_models/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# =============================================================================
+# FRONTEND / NODE.JS
+# =============================================================================
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Package manager lock files (keep package.json, ignore locks)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+frontend/package-lock.json
+frontend/yarn.lock
+frontend/pnpm-lock.yaml
+
+# Build outputs
+dist/
+build/
+out/
+frontend/dist/
+frontend/build/
+frontend/out/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+!frontend/env.example
+
+# Cache directories
+.cache/
+.parcel-cache/
+.vite/
+frontend/.cache/
+frontend/.parcel-cache/
+frontend/.vite/
+
+# Coverage reports
+coverage/
+frontend/coverage/
+*.lcov
+
+# Nuxt.js build / generate output
+.nuxt/
+.output/
+
+# Vite
+.vite/
+
+# Vue.js
+*.vue.js
+
+# =============================================================================
+# DEVELOPMENT TOOLS & EDITORS
+# =============================================================================
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.vim/
+.netrwhist
+
+# JetBrains
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.vim/
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# =============================================================================
+# OPERATING SYSTEM
+# =============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# =============================================================================
+# PROJECT SPECIFIC
+# =============================================================================
+
+# Data files
+datasets/temp/
+datasets/cache/
+*.csv.backup
+*.json.backup
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Documentation builds
+docs/_build/
+docs/site/
+
+# Test files
+test_outputs/
+*.test
+test_results/
+
+# Security and secrets
+secrets/
+*.pem
+*.key
+*.cert
+*.crt
+id_rsa*
+*.p12
+
+# =============================================================================
+# MISCELLANEOUS
+# =============================================================================
+
+# Thumbnails
+*.thumbnail
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk

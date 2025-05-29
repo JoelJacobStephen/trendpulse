@@ -1,0 +1,72 @@
+# TrendPulse Backend - Environment Configuration
+# Copy this content to a file named .env in the backend directory
+
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+
+# For Neon Cloud Database (recommended for deployment)
+# Get your connection string from: https://console.neon.tech/
+# Format: postgresql://username:password@host/database?sslmode=require
+DATABASE_URL=postgresql://username:password@ep-xxx-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require
+
+# Alternative: Local PostgreSQL (for development)
+# DATABASE_URL=postgresql://localhost:5432/trendpulse
+
+# =============================================================================
+# API KEYS (Get these for better news coverage)
+# =============================================================================
+
+# NewsAPI.org - Free tier: 1000 requests/day
+# Sign up at: https://newsapi.org/
+# Required for: Country-specific news, categorized news
+NEWS_API_KEY=your_newsapi_key_here
+
+# The Guardian API - Free tier: 12 calls/second, no daily limit
+# Sign up at: https://open-platform.theguardian.com/access/
+# Required for: High-quality journalism, detailed metadata
+GUARDIAN_API_KEY=your_guardian_api_key_here
+
+# =============================================================================
+# APPLICATION SETTINGS
+# =============================================================================
+
+# Development mode (set to False in production)
+DEBUG=True
+
+# Secret key for application security (generate a strong one for production)
+SECRET_KEY=dev-secret-key-change-in-production-use-at-least-32-characters
+
+# CORS origins (comma-separated list of allowed frontend URLs)
+CORS_ORIGINS=http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000
+
+# =============================================================================
+# MACHINE LEARNING CONFIGURATION
+# =============================================================================
+
+# Directory to cache ML models (optional)
+HUGGINGFACE_CACHE_DIR=./models_cache
+
+# Model name for topic classification (optional)
+MODEL_NAME=distilbert-base-uncased
+
+# =============================================================================
+# BACKGROUND TASKS CONFIGURATION
+# =============================================================================
+
+# How often to fetch news (in seconds)
+# 3600 = 1 hour, 1800 = 30 minutes
+NEWS_FETCH_INTERVAL=3600
+
+# How often to calculate trends (in seconds)
+# 21600 = 6 hours, 86400 = 24 hours
+TREND_CALCULATION_INTERVAL=21600
+
+# =============================================================================
+# PRODUCTION SETTINGS (uncomment for production)
+# =============================================================================
+
+# PORT=8000
+# HOST=0.0.0.0
+# WORKERS=4
+# LOG_LEVEL=info 

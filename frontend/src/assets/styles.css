@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom global styles */
+body {
+  font-family: 'Source Sans Pro', sans-serif;
+  background-color: theme('colors.light');
+}
+
+.font-serif {
+  font-family: 'Playfair Display', serif;
+}
