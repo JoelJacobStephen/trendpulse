@@ -2,8 +2,6 @@
 
 A comprehensive data-driven platform that tracks and analyzes news topic trends across time and geography, providing insights into how global events and themes evolve and spread across different regions.
 
-[![Demo Screenshot](frontend/public/images/demo.png)](https://trendpulse.vercel.app)
-
 ## Table of Contents
 
 - [Project Overview](#project-overview)
@@ -35,7 +33,7 @@ Key capabilities include:
 
 ## Demo
 
-**Live Demo**: [TrendPulse Application](https://trendpulse.vercel.app)
+<!-- **Live Demo**: [TrendPulse Application](https://trendpulse.vercel.app) -->
 
 The interactive platform allows you to:
 
