@@ -108,11 +108,14 @@ class BackgroundScheduler:
         logger.info("Executing cleanup job...")
         
         try:
-            # Clean up old articles (older than 30 days)
-            cleaned_articles = self.news_processor.cleanup_old_articles(days=30)
+            # Import here to avoid circular imports
+            from config import settings
             
-            # Clean up old trends (older than 90 days)
-            cleaned_trends = self.trend_calculator.cleanup_old_trends(days=90)
+            # Clean up old articles (configurable retention period)
+            cleaned_articles = self.news_processor.cleanup_old_articles(days=settings.ARTICLE_RETENTION_DAYS)
+            
+            # Clean up old trends (configurable retention period)
+            cleaned_trends = self.trend_calculator.cleanup_old_trends(days=settings.TREND_RETENTION_DAYS)
             
             logger.info(f"Cleanup job completed: {cleaned_articles} articles, {cleaned_trends} trends removed")
             return {

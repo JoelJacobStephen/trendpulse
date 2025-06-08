@@ -24,6 +24,10 @@ class Settings:
     NEWS_FETCH_INTERVAL: int = int(os.getenv("NEWS_FETCH_INTERVAL", "3600"))
     TREND_CALCULATION_INTERVAL: int = int(os.getenv("TREND_CALCULATION_INTERVAL", "86400"))
     
+    # Data Retention
+    ARTICLE_RETENTION_DAYS: int = int(os.getenv("ARTICLE_RETENTION_DAYS", "30"))
+    TREND_RETENTION_DAYS: int = int(os.getenv("TREND_RETENTION_DAYS", "90"))
+    
     # News Sources
     RSS_FEEDS = [
         "http://feeds.bbci.co.uk/news/rss.xml",

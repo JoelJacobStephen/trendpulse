@@ -331,38 +331,123 @@ def run_historical_fetch():
         import traceback
         traceback.print_exc()
 
+def run_status():
+    """Show database status and retention information"""
+    print("📊 TrendPulse Database Status")
+    
+    try:
+        from database import SessionLocal
+        from models import Article, TopicTrend
+        from datetime import datetime, timedelta
+        from config import settings
+        import collections
+        
+        db = SessionLocal()
+        
+        # Article statistics
+        total_articles = db.query(Article).count()
+        print(f"\n📰 Articles:")
+        print(f"   Total articles: {total_articles}")
+        
+        if total_articles > 0:
+            # Date range
+            oldest_article = db.query(Article).order_by(Article.published_date).first()
+            newest_article = db.query(Article).order_by(Article.published_date.desc()).first()
+            
+            print(f"   Date range: {oldest_article.published_date.strftime('%Y-%m-%d')} to {newest_article.published_date.strftime('%Y-%m-%d')}")
+            
+            # Retention analysis
+            cutoff_date = datetime.now() - timedelta(days=settings.ARTICLE_RETENTION_DAYS)
+            old_articles = db.query(Article).filter(Article.published_date < cutoff_date).count()
+            recent_articles = total_articles - old_articles
+            
+            print(f"   Within retention period ({settings.ARTICLE_RETENTION_DAYS} days): {recent_articles}")
+            print(f"   Will be deleted in next cleanup: {old_articles}")
+            
+            # Daily breakdown (last 7 days)
+            print(f"\n📅 Recent activity (last 7 days):")
+            for i in range(7):
+                date = datetime.now().date() - timedelta(days=i)
+                count = db.query(Article).filter(
+                    Article.published_date >= datetime.combine(date, datetime.min.time()),
+                    Article.published_date < datetime.combine(date + timedelta(days=1), datetime.min.time())
+                ).count()
+                print(f"   {date}: {count} articles")
+        
+        # Trend statistics
+        total_trends = db.query(TopicTrend).count()
+        print(f"\n📈 Trends:")
+        print(f"   Total trends: {total_trends}")
+        
+        if total_trends > 0:
+            trend_cutoff_date = datetime.now() - timedelta(days=settings.TREND_RETENTION_DAYS)
+            old_trends = db.query(TopicTrend).filter(TopicTrend.date < trend_cutoff_date).count()
+            recent_trends = total_trends - old_trends
+            
+            print(f"   Within retention period ({settings.TREND_RETENTION_DAYS} days): {recent_trends}")
+            print(f"   Will be deleted in next cleanup: {old_trends}")
+        
+        # Cleanup schedule
+        print(f"\n🧹 Automatic Cleanup:")
+        print(f"   Runs daily at 2:00 AM")
+        print(f"   Article retention: {settings.ARTICLE_RETENTION_DAYS} days")
+        print(f"   Trend retention: {settings.TREND_RETENTION_DAYS} days")
+        
+        db.close()
+        
+    except Exception as e:
+        print(f"❌ Error getting status: {e}")
+
+def run_cleanup():
+    """Run cleanup manually"""
+    print("🧹 Running manual cleanup...")
+    
+    try:
+        from etl.news_processor import NewsProcessor
+        from etl.trend_calculator import TrendCalculator
+        from config import settings
+        
+        processor = NewsProcessor()
+        calculator = TrendCalculator()
+        
+        print(f"Cleaning up articles older than {settings.ARTICLE_RETENTION_DAYS} days...")
+        deleted_articles = processor.cleanup_old_articles(days=settings.ARTICLE_RETENTION_DAYS)
+        
+        print(f"Cleaning up trends older than {settings.TREND_RETENTION_DAYS} days...")
+        deleted_trends = calculator.cleanup_old_trends(days=settings.TREND_RETENTION_DAYS)
+        
+        print(f"✅ Cleanup completed:")
+        print(f"   Deleted {deleted_articles} articles")
+        print(f"   Deleted {deleted_trends} trends")
+        
+    except Exception as e:
+        print(f"❌ Cleanup failed: {e}")
+
 def show_help():
-    """Show help information"""
-    help_text = """
-TrendPulse Backend - Single Entry Point
-
-Commands:
-  python run.py                - Start the FastAPI development server (default)
-  python run.py server         - Start the FastAPI development server
-  python run.py prod           - Start the production server (gunicorn)
-  python run.py scheduler      - Start only the background scheduler
-  python run.py setup          - Set up and initialize the database
-  python run.py fetch          - Run a one-time news fetch
-  python run.py reset          - Clear all data and reset the database
-  python run.py trend          - Run trend calculation for all topics and countries
-  python run.py test           - Run a quick API test
-  python run.py historical     - Fetch historical news data for the past 30 days
-  python run.py help           - Show this help message
-
-Environment Setup:
-  1. Install dependencies: pip install -r requirements.txt
-  2. Set up PostgreSQL database
-  3. Configure environment variables (see .env.example)
-  4. Run: python run.py setup
-  5. Run: python run.py server
-
-For production deployment:
-  - Use: python run.py prod
-  - Or manually: gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:8000
-
-This is the ONLY script you need to run the backend. All other functionality is accessible through this script.
-    """
-    print(help_text)
+    """Show available commands"""
+    commands = {
+        "server (default)": "Start the development server",
+        "prod": "Start production server with gunicorn",
+        "setup": "Initialize database and create tables",
+        "fetch": "Fetch news from all sources once",
+        "trend": "Calculate trends once",
+        "scheduler": "Run background scheduler for automated tasks",
+        "historical": "Fetch historical articles (last 30 days)",
+        "status": "Show database status and retention info",
+        "cleanup": "Run cleanup manually (delete old articles/trends)",
+        "reset": "Reset database (delete all data)",
+        "test": "Test API endpoints",
+        "help": "Show this help message"
+    }
+    
+    print("🚀 TrendPulse Backend - Available Commands")
+    print("=" * 50)
+    for cmd, desc in commands.items():
+        print(f"  python run.py {cmd:<12} - {desc}")
+    print()
+    print("💡 Environment variables (create .env file):")
+    print("  DATABASE_URL, NEWS_API_KEY, GUARDIAN_API_KEY")
+    print("  ARTICLE_RETENTION_DAYS, TREND_RETENTION_DAYS")
 
 def main():
     """Main entry point"""
@@ -398,6 +483,10 @@ def main():
         run_api_test()
     elif command == "historical":
         run_historical_fetch()
+    elif command == "status":
+        run_status()
+    elif command == "cleanup":
+        run_cleanup()
     elif command == "help":
         show_help()
     else:

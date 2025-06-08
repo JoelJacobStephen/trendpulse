@@ -63,6 +63,18 @@ NEWS_FETCH_INTERVAL=3600
 TREND_CALCULATION_INTERVAL=21600
 
 # =============================================================================
+# DATA RETENTION CONFIGURATION
+# =============================================================================
+
+# How many days to keep articles (default: 30 days)
+# Older articles will be automatically deleted daily at 2 AM
+ARTICLE_RETENTION_DAYS=30
+
+# How many days to keep trend data (default: 90 days)
+# Older trends will be automatically deleted daily at 2 AM
+TREND_RETENTION_DAYS=90
+
+# =============================================================================
 # PRODUCTION SETTINGS (uncomment for production)
 # =============================================================================
 
