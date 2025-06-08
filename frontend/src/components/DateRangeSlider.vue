@@ -56,7 +56,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from "vue";
+import { computed, ref, onMounted, watch } from "vue";
 import { useStore } from "vuex";
 import { format, subDays, subMonths, differenceInDays } from "date-fns";
 
@@ -66,8 +66,8 @@ const store = useStore();
 const dateRange = computed(() => store.state.dateRange);
 
 // Local reactive refs for form inputs
-const startDate = ref(dateRange.value.start);
-const endDate = ref(dateRange.value.end);
+const startDate = ref(dateRange.value.start.split("T")[0]);
+const endDate = ref(dateRange.value.end.split("T")[0]);
 const today = format(new Date(), "yyyy-MM-dd");
 
 // Date presets
@@ -96,9 +96,10 @@ const datePresets = [
 
 const updateDateRange = () => {
   const newRange = {
-    start: startDate.value,
-    end: endDate.value,
+    start: startDate.value + "T00:00:00",
+    end: endDate.value + "T23:59:59",
   };
+  console.log("DateRangeSlider sending range:", newRange);
   store.dispatch("updateDateRange", newRange);
 };
 
@@ -132,9 +133,18 @@ const getDayCount = (start, end) => {
 
 // Update local state when store changes
 const updateLocalDates = () => {
-  startDate.value = dateRange.value.start;
-  endDate.value = dateRange.value.end;
+  startDate.value = dateRange.value.start.split("T")[0];
+  endDate.value = dateRange.value.end.split("T")[0];
 };
+
+// Watch for changes in the store date range
+watch(
+  dateRange,
+  () => {
+    updateLocalDates();
+  },
+  { deep: true }
+);
 
 onMounted(() => {
   updateLocalDates();

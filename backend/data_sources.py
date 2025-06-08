@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import requests
 import feedparser
 from newsapi import NewsApiClient
@@ -47,6 +47,56 @@ class NewsAPISource:
             
         except Exception as e:
             logger.error(f"Error fetching from NewsAPI: {e}")
+            return []
+
+    def get_historical_articles(self, 
+                              from_date: datetime, 
+                              to_date: datetime, 
+                              query: str = None,
+                              sources: str = None,
+                              page_size: int = 100,
+                              page: int = 1) -> List[Dict]:
+        """Fetch historical articles from NewsAPI using /everything endpoint"""
+        if not self.client:
+            logger.warning("NewsAPI key not configured")
+            return []
+            
+        try:
+            # Format dates for NewsAPI (ISO 8601)
+            from_param = from_date.strftime('%Y-%m-%dT%H:%M:%S')
+            to_param = to_date.strftime('%Y-%m-%dT%H:%M:%S')
+            
+            # Use get_everything for historical data
+            response = self.client.get_everything(
+                q=query,
+                sources=sources,
+                from_param=from_param,
+                to=to_param,
+                language='en',
+                sort_by='publishedAt',
+                page_size=page_size,
+                page=page
+            )
+            
+            articles = []
+            for article in response.get('articles', []):
+                articles.append({
+                    'title': article.get('title', ''),
+                    'content': article.get('content', ''),
+                    'description': article.get('description', ''),
+                    'url': article.get('url', ''),
+                    'published_date': article.get('publishedAt', ''),
+                    'source_name': article.get('source', {}).get('name', ''),
+                    'source_url': article.get('url', ''),
+                    'author': article.get('author', ''),
+                    'image_url': article.get('urlToImage', '')
+                })
+            
+            logger.info(f"Fetched {len(articles)} historical articles from NewsAPI ({from_param} to {to_param})")
+            return articles
+            
+        except Exception as e:
+            logger.error(f"Error fetching historical articles from NewsAPI: {e}")
             return []
 
 class GuardianAPISource:
@@ -99,6 +149,63 @@ class GuardianAPISource:
             
         except Exception as e:
             logger.error(f"Error fetching from Guardian API: {e}")
+            return []
+
+    def get_historical_articles(self, 
+                              from_date: datetime, 
+                              to_date: datetime,
+                              section: str = None,
+                              query: str = None,
+                              page_size: int = 50,
+                              page: int = 1) -> List[Dict]:
+        """Fetch historical articles from Guardian API with date range"""
+        if not self.api_key:
+            logger.warning("Guardian API key not configured")
+            return []
+            
+        try:
+            url = f"{self.base_url}/search"
+            params = {
+                'api-key': self.api_key,
+                'page-size': page_size,
+                'show-fields': 'all',
+                'show-tags': 'keyword',
+                'order-by': 'newest',
+                'from-date': from_date.strftime('%Y-%m-%d'),
+                'to-date': to_date.strftime('%Y-%m-%d'),
+                'page': page
+            }
+            
+            if section:
+                params['section'] = section
+            if query:
+                params['q'] = query
+                
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            
+            data = response.json()
+            articles = []
+            
+            for item in data.get('response', {}).get('results', []):
+                fields = item.get('fields', {})
+                articles.append({
+                    'title': item.get('webTitle', ''),
+                    'content': fields.get('bodyText', ''),
+                    'description': fields.get('trailText', ''),
+                    'url': item.get('webUrl', ''),
+                    'published_date': item.get('webPublicationDate', ''),
+                    'source_name': 'The Guardian',
+                    'source_url': 'https://theguardian.com',
+                    'section': item.get('sectionName', ''),
+                    'tags': [tag.get('webTitle', '') for tag in item.get('tags', [])]
+                })
+            
+            logger.info(f"Fetched {len(articles)} historical articles from Guardian ({from_date.strftime('%Y-%m-%d')} to {to_date.strftime('%Y-%m-%d')})")
+            return articles
+            
+        except Exception as e:
+            logger.error(f"Error fetching historical articles from Guardian: {e}")
             return []
 
 class RSSFeedSource:
@@ -174,6 +281,62 @@ class NewsSourceManager:
         
         logger.info(f"Fetched {len(all_articles)} articles from all sources")
         return all_articles
+
+    def fetch_historical_news(self, 
+                            from_date: datetime, 
+                            to_date: datetime,
+                            query: str = None,
+                            sources: str = None) -> List[Dict]:
+        """Fetch historical news from all available sources with API keys"""
+        all_articles = []
+        
+        # Fetch historical data from NewsAPI (requires API key)
+        if self.newsapi.client:
+            try:
+                # Fetch in chunks to handle large date ranges
+                current_date = from_date
+                while current_date < to_date:
+                    chunk_end = min(current_date + timedelta(days=7), to_date)
+                    
+                    newsapi_articles = self.newsapi.get_historical_articles(
+                        from_date=current_date,
+                        to_date=chunk_end,
+                        query=query,
+                        sources=sources,
+                        page_size=100
+                    )
+                    
+                    for article in newsapi_articles:
+                        article['source_type'] = 'newsapi_historical'
+                    all_articles.extend(newsapi_articles)
+                    
+                    current_date = chunk_end + timedelta(days=1)
+                    
+                logger.info(f"Fetched {len([a for a in all_articles if a['source_type'] == 'newsapi_historical'])} historical articles from NewsAPI")
+            except Exception as e:
+                logger.error(f"Error fetching historical NewsAPI data: {e}")
+        
+        # Fetch historical data from Guardian (requires API key)
+        if self.guardian.api_key:
+            try:
+                guardian_articles = self.guardian.get_historical_articles(
+                    from_date=from_date,
+                    to_date=to_date,
+                    query=query,
+                    page_size=50
+                )
+                
+                for article in guardian_articles:
+                    article['source_type'] = 'guardian_historical'
+                all_articles.extend(guardian_articles)
+                
+                logger.info(f"Fetched {len([a for a in all_articles if a['source_type'] == 'guardian_historical'])} historical articles from Guardian")
+            except Exception as e:
+                logger.error(f"Error fetching historical Guardian data: {e}")
+        
+        # RSS feeds cannot provide historical data beyond what's in current feeds
+        logger.info(f"Total historical articles fetched: {len(all_articles)}")
+        return all_articles
     
     def get_country_specific_news(self, country_code: str) -> List[Dict]:
         """Get news specific to a country"""
@@ -181,4 +344,33 @@ class NewsSourceManager:
     
     def get_category_news(self, category: str) -> List[Dict]:
         """Get news by category"""
-        return self.newsapi.get_top_headlines(category=category) 
+        return self.newsapi.get_top_headlines(category=category)
+
+    def bulk_fetch_historical_data(self, days_back: int = 30, batch_size: int = 7) -> int:
+        """Bulk fetch historical data for the past N days"""
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days_back)
+        
+        logger.info(f"Starting bulk historical fetch for {days_back} days ({start_date} to {end_date})")
+        
+        total_articles = 0
+        current_date = start_date
+        
+        while current_date < end_date:
+            batch_end = min(current_date + timedelta(days=batch_size), end_date)
+            
+            logger.info(f"Fetching batch: {current_date} to {batch_end}")
+            articles = self.fetch_historical_news(
+                from_date=current_date,
+                to_date=batch_end
+            )
+            
+            if articles:
+                # Process and save articles (you would integrate this with news_aggregator)
+                total_articles += len(articles)
+                logger.info(f"Batch completed: {len(articles)} articles")
+            
+            current_date = batch_end
+        
+        logger.info(f"Bulk historical fetch completed: {total_articles} total articles")
+        return total_articles 

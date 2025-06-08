@@ -197,6 +197,7 @@ import {
   watch,
   onMounted,
   onBeforeUnmount,
+  onUnmounted,
   nextTick,
 } from "vue";
 import { useStore } from "vuex";
@@ -209,6 +210,7 @@ const store = useStore();
 const trendChart = ref(null);
 const chartInstance = ref(null);
 const isMounted = ref(false);
+const isDestroyed = ref(false);
 
 // Computed properties
 const loading = computed(() => store.getters.isLoading);
@@ -298,41 +300,68 @@ const openStory = (url) => {
   }
 };
 
-const initChart = () => {
-  // First clean up any existing chart to prevent memory leaks
+const stopChart = () => {
   if (chartInstance.value) {
     try {
-      chartInstance.value.destroy();
+      chartInstance.value.stop();
+      console.log("Chart animations stopped");
     } catch (e) {
-      console.warn("Error destroying chart instance:", e);
+      console.warn("Error stopping chart animations:", e);
     }
-    chartInstance.value = null;
   }
-  
+};
+
+const cleanupChart = () => {
+  if (chartInstance.value) {
+    try {
+      // Stop all animations first
+      chartInstance.value.stop();
+      // Then destroy the chart
+      chartInstance.value.destroy();
+      console.log("Chart cleaned up successfully");
+    } catch (e) {
+      console.warn("Error during chart cleanup:", e);
+    } finally {
+      chartInstance.value = null;
+    }
+  }
+};
+
+const initChart = () => {
+  // Always clean up first
+  cleanupChart();
+
   // Validation checks - early return if conditions aren't met
   if (!isMounted.value) {
     console.log("Chart initialization skipped: component not mounted yet");
     return;
   }
-  
+
+  if (isDestroyed.value) {
+    console.log("Chart initialization skipped: component is being destroyed");
+    return;
+  }
+
   // Check if canvas element exists and is in the DOM
   const canvasElement = trendChart.value;
   if (!canvasElement) {
     console.error("Chart initialization failed: canvas element is null");
     return;
   }
-  
+
   if (!document.body.contains(canvasElement)) {
-    console.error("Chart initialization failed: canvas element is not in the DOM");
+    console.error(
+      "Chart initialization failed: canvas element is not in the DOM"
+    );
     return;
   }
-  
+
   // Check if we have data to display
   if (!topicAnalysis.value || !topicAnalysis.value.time_series) {
     console.log("Chart initialization skipped: no time series data available");
     return;
   }
-  
+
   try {
     const timeSeriesData = topicAnalysis.value.time_series;
 
@@ -353,12 +382,18 @@ const initChart = () => {
     console.log("Initializing chart with", validData.length, "data points");
 
     // Get the context directly from the canvas element
-    const ctx = canvasElement.getContext('2d');
+    const ctx = canvasElement.getContext("2d");
     if (!ctx) {
       console.error("Failed to get 2D rendering context from canvas");
       return;
     }
-    
+
+    // Double-check that we're still mounted and not destroyed
+    if (!isMounted.value || isDestroyed.value) {
+      console.log("Component state changed during initialization, aborting");
+      return;
+    }
+
     chartInstance.value = new Chart(ctx, {
       type: "line",
       data: {
@@ -389,6 +424,15 @@ const initChart = () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 400, // Shorter animation duration
+          onComplete: () => {
+            // Check if component is still mounted after animation
+            if (!isMounted.value || isDestroyed.value) {
+              cleanupChart();
+            }
+          },
+        },
         layout: {
           padding: {
             top: 10,
@@ -460,17 +504,15 @@ const initChart = () => {
         },
       },
     });
+
+    // Final check that component is still valid
+    if (!isMounted.value || isDestroyed.value) {
+      console.log("Component destroyed during chart creation, cleaning up");
+      cleanupChart();
+    }
   } catch (error) {
     console.error("Error initializing chart:", error);
-    // Clean up any partial initialization
-    if (chartInstance.value) {
-      try {
-        chartInstance.value.destroy();
-      } catch (e) {
-        console.warn("Error cleaning up chart after failure:", e);
-      }
-      chartInstance.value = null;
-    }
+    cleanupChart();
   }
 };
 
@@ -478,28 +520,44 @@ const initChart = () => {
 watch(
   () => topicAnalysis.value,
   async (newValue) => {
+    // Don't initialize chart if component is destroyed or unmounted
+    if (isDestroyed.value || !isMounted.value) {
+      console.log(
+        "Component destroyed/unmounted, skipping chart initialization"
+      );
+      return;
+    }
+
     if (newValue && newValue.time_series) {
       console.log("Topic analysis data updated, initializing chart...");
       // Give the DOM time to fully render with multiple nextTick calls
       await nextTick();
       await nextTick();
-      
+
       // Use a more reliable approach with multiple attempts
       let attempts = 0;
       const maxAttempts = 3;
-      
+
       const tryInitChart = () => {
+        // Check if component is still valid before each attempt
+        if (isDestroyed.value || !isMounted.value) {
+          console.log("Component state changed, aborting chart initialization");
+          return;
+        }
+
         attempts++;
         if (trendChart.value && document.body.contains(trendChart.value)) {
           initChart();
         } else if (attempts < maxAttempts) {
-          console.warn(`Canvas element not ready, attempt ${attempts}/${maxAttempts}`);
+          console.warn(
+            `Canvas element not ready, attempt ${attempts}/${maxAttempts}`
+          );
           setTimeout(tryInitChart, 300);
         } else {
           console.error("Failed to initialize chart after multiple attempts");
         }
       };
-      
+
       // Start the attempt sequence
       setTimeout(tryInitChart, 300);
     }
@@ -510,6 +568,11 @@ watch(
 watch(
   () => selectedTopic.value,
   (newTopic) => {
+    // Don't load data if component is destroyed
+    if (isDestroyed.value || !isMounted.value) {
+      return;
+    }
+
     console.log("Selected topic changed to:", newTopic);
     if (newTopic) {
       store.dispatch("loadTopicAnalysis");
@@ -521,13 +584,14 @@ watch(
 onMounted(async () => {
   console.log("TrendAnalysis component mounted");
   isMounted.value = true;
+  isDestroyed.value = false;
 
   // Wait for DOM to be fully ready
   await nextTick();
   await nextTick(); // Double nextTick for extra safety
-  
+
   // Load topic analysis data regardless of canvas readiness
-  if (selectedTopic.value) {
+  if (selectedTopic.value && !isDestroyed.value) {
     console.log("Loading topic analysis for:", selectedTopic.value);
     store.dispatch("loadTopicAnalysis");
     // The watch on topicAnalysis will handle chart initialization
@@ -538,13 +602,21 @@ onMounted(async () => {
 // Cleanup chart on component unmount
 onBeforeUnmount(() => {
   console.log("TrendAnalysis component unmounting");
+  isDestroyed.value = true;
   isMounted.value = false;
 
-  if (chartInstance.value) {
-    console.log("Destroying chart instance");
-    chartInstance.value.destroy();
-    chartInstance.value = null;
-  }
+  // Stop chart animations immediately
+  stopChart();
+
+  // Clean up chart with proper error handling
+  cleanupChart();
+});
+
+// Additional cleanup hook for safety
+onUnmounted(() => {
+  console.log("TrendAnalysis component unmounted");
+  // Final cleanup in case onBeforeUnmount didn't work
+  cleanupChart();
 });
 </script>
 

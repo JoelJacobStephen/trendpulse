@@ -289,6 +289,8 @@ async def get_countries_trends(
 ):
     """Get aggregated trend data for all countries for a specific topic (for map visualization)"""
     try:
+        logger.info(f"Countries trends request - topic: {topic}, start_date: {start_date}, end_date: {end_date}")
+        
         # Convert date strings to datetime objects
         start_datetime = None
         end_datetime = None

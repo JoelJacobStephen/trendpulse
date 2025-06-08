@@ -270,6 +270,67 @@ def run_api_test():
         logger.error("Make sure the server is running with: python run.py server")
         sys.exit(1)
 
+def run_historical_fetch():
+    """Fetch historical news data for the past 30 days"""
+    print("🔄 Starting historical news fetch...")
+    
+    try:
+        from data_sources import NewsSourceManager
+        from news_aggregator import news_aggregator
+        from datetime import datetime, timedelta
+        
+        source_manager = NewsSourceManager()
+        
+        # Check if API keys are available
+        has_newsapi = bool(source_manager.newsapi.client)
+        has_guardian = bool(source_manager.guardian.api_key)
+        
+        if not has_newsapi and not has_guardian:
+            print("❌ No API keys configured for historical fetching")
+            print("   Add NEWS_API_KEY and/or GUARDIAN_API_KEY to your .env file")
+            return
+        
+        print(f"📊 Available sources for historical data:")
+        print(f"   NewsAPI: {'✅' if has_newsapi else '❌'}")
+        print(f"   Guardian: {'✅' if has_guardian else '❌'}")
+        
+        # Fetch historical data for past 30 days
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=30)
+        
+        print(f"📅 Fetching articles from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+        
+        articles = source_manager.fetch_historical_news(
+            from_date=start_date,
+            to_date=end_date
+        )
+        
+        if articles:
+            print(f"📰 Fetched {len(articles)} historical articles")
+            
+            # Process and save articles using existing aggregator
+            saved_count = news_aggregator._save_articles_to_db(articles)
+            print(f"💾 Saved {saved_count} new articles to database")
+            
+            # Calculate trends after adding historical data
+            print("📈 Calculating trends for historical data...")
+            from etl.trend_calculator import TrendCalculator
+            trend_calc = TrendCalculator()
+            trend_count = trend_calc.calculate_all_trends()
+            print(f"📊 Generated {trend_count} trend records")
+            
+        else:
+            print("⚠️  No historical articles found")
+            
+        print("✅ Historical fetch completed successfully!")
+        
+    except ImportError as e:
+        print(f"❌ Missing dependencies: {e}")
+    except Exception as e:
+        print(f"❌ Error during historical fetch: {e}")
+        import traceback
+        traceback.print_exc()
+
 def show_help():
     """Show help information"""
     help_text = """
@@ -285,6 +346,7 @@ Commands:
   python run.py reset          - Clear all data and reset the database
   python run.py trend          - Run trend calculation for all topics and countries
   python run.py test           - Run a quick API test
+  python run.py historical     - Fetch historical news data for the past 30 days
   python run.py help           - Show this help message
 
 Environment Setup:
@@ -334,6 +396,8 @@ def main():
         run_production_server()
     elif command == "test":
         run_api_test()
+    elif command == "historical":
+        run_historical_fetch()
     elif command == "help":
         show_help()
     else:

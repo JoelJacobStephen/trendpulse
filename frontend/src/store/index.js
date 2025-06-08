@@ -228,12 +228,15 @@ export default createStore({
         async loadCountriesTrends({ commit, state }, params = {}) {
             try {
                 commit('SET_LOADING', true)
-                const countriesTrends = await APIService.getCountriesTrends({
+                const requestParams = {
                     topic: state.selectedTopic,
                     start_date: state.dateRange.start,
                     end_date: state.dateRange.end,
                     ...params
-                })
+                }
+                console.log('Loading countries trends with params:', requestParams)
+                const countriesTrends = await APIService.getCountriesTrends(requestParams)
+                console.log('Received countries trends:', countriesTrends)
                 commit('SET_COUNTRIES_TRENDS', countriesTrends)
                 commit('SET_ERROR', null)
             } catch (error) {
@@ -273,6 +276,7 @@ export default createStore({
             commit('SET_SELECTED_TOPIC', topic)
             dispatch('loadTopicTrends')
             dispatch('loadTopicAnalysis')
+            dispatch('loadCountriesTrends')
         },
 
         selectCountry({ commit, dispatch }, country) {
@@ -284,8 +288,12 @@ export default createStore({
         },
 
         updateDateRange({ commit, dispatch }, dateRange) {
+            console.log('Updating date range:', dateRange)
             commit('SET_DATE_RANGE', dateRange)
+            // Reload all data that depends on date range
             dispatch('loadTopicTrends')
+            dispatch('loadTopicAnalysis')
+            dispatch('loadCountriesTrends')
         },
 
         startAutoRefresh({ commit, dispatch }, intervalMs = 300000) { // 5 minutes
