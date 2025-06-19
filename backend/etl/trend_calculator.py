@@ -32,7 +32,7 @@ class TrendCalculator:
         total_calculated = 0
         
         try:
-            # Get all unique combinations of topics and countries
+            # Get all different unique combinations of topics and countries
             db = SessionLocal()
             
             combinations = (db.query(Article.primary_theme, Article.country)
